@@ -27,7 +27,7 @@ parameters:
   Environment:
     description: Image
     type: string
-    default: any
+    default: test
 
 resources:
   Net:
