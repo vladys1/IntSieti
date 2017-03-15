@@ -25,9 +25,14 @@ parameters:
     default: Ubuntu server 14.04 amd64 KIS
     
   Environment:
-    description: Image
+    description: Environment
     type: string
     default: test
+    
+  SubnetCidr:
+    description: SubnetCidr
+    type: string
+    default: 10.255.255.0/24
 
 resources:
   Net:
@@ -36,18 +41,26 @@ resources:
       admin_state_up: True
       name: { list_join: [ '-', [ { get_param: 'Environment' }, 'network' ] ] }
       shared: False
-#  Instance:
-#    type: OS::Nova::Server
-#    properties:
-#      #name: instance-cv3
-#      name: { list_join: [ '-', [ { get_param: 'Cvicenie' }, 'instance' ] ] }
-#      availability_zone: { get_param: 'AvailabilityZone' }
-#      flavor: { get_param: 'Flavor' }
-#      image: { get_param: 'Image' }
-#      #network: { get_param: 'Network' }
-#      networks:
-#        - network: {get_param: 'Network'}
-#      user_data: |
-#        #!/bin/bash
-#        apt-get update -y
-#      user_data_format: RAW
+      
+  Subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      name: { list_join: [ '-', [ { get_param: 'Environment' }, 'subnet' ] ] }
+      cidr: { get_param: SubnetCidr }
+      dns_nameservers:
+        - 158.193.152.2
+        - 8.8.8.8
+        - 8.8.4.4
+      enable_dhcp: True
+      network: { get_resource: Net }
+   
+  Router:
+    type: OS::Neutron::Router
+    properties:
+      admin_state_up: True
+      name: { list_join: [ '-', [ { get_param: 'Environment' }, 'router' ] ] }
+      external_gateway_infro: {
+        enable_snat: True,
+        network: ext-net
+      }
+    
