@@ -79,9 +79,10 @@ resources:
         type: OS::Neutron::SecurityGroup
         properties:
             name: { list_join: [ '-', [ { get_param: 'Cvicenie' }, 'app-security-group' ] ] }
-            rules: [ { direction: ingress, ethertype: IPv4, protocol: tcp, port_range_min: 22,
-                        port_range_max: 65535, remote_ip_prefix: 158.193.0.0/16 },
-                    { direction: ingress, ethertype: IPv4, protocol: icmp, remote_ip_prefix: 158.193.0.0/16 } ]
+            rules: [ { direction: ingress, ethertype: IPv4, protocol: tcp, port_range_min: 22, port_range_max: 65535, remote_ip_prefix: 158.193.0.0/16 },
+                    { direction: ingress, ethertype: IPv4, protocol: icmp, remote_ip_prefix: 158.193.0.0/16 }
+                    { direction: ingress, ethertype: IPv4, protocol: http, remote_ip_prefix: 158.193.0.0/16 }
+                    { direction: ingress, ethertype: IPv4, protocol: https, remote_ip_prefix: 158.193.0.0/16 }]
                    
     AppPort:
         type: OS::Neutron::Port
