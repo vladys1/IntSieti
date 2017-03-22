@@ -38,6 +38,11 @@ parameters:
     description: JumpFloatingIpID
     type: string
     default: d4a30ba0-f53c-48f8-8e15-3cf011412179
+    
+  ProxyFloatingIpID:
+    description: ProxyFloatingIpID
+    type: string
+    default: 826a61f5-b846-44b1-841a-ee3d934ba77e
 
 resources:
     Net:
@@ -124,7 +129,10 @@ resources:
             rules: [ { direction: ingress, ethertype: IPv4, protocol: tcp, port_range_min: 22, port_range_max: 22, remote_ip_prefix: 10.255.255.0/24 },
                     { direction: ingress, ethertype: IPv4, protocol: icmp, remote_ip_prefix: 10.255.255.0/24 }, 
                     { direction: ingress, ethertype: IPv4, protocol: tcp, port_range_min: 80, port_range_max: 80, remote_ip_prefix: 10.255.255.0/24 }, 
-                    { direction: ingress, ethertype: IPv4, protocol: tcp, port_range_min: 443, port_range_max: 443, remote_ip_prefix: 10.255.255.0/24 } ]
+                    { direction: ingress, ethertype: IPv4, protocol: tcp, port_range_min: 443, port_range_max: 443, remote_ip_prefix: 10.255.255.0/24 },
+                    { direction: egress, ethertype: IPv4, protocol: tcp, port_range_min: 1, port_range_max: 65535, remote_ip_prefix: 10.255.255.0/24 },
+                    { direction: egress, ethertype: IPv4, protocol: udp, port_range_min: 1, port_range_max: 65535, remote_ip_prefix: 10.255.255.0/24 },
+                    { direction: egress, ethertype: IPv4, protocol: icmp, remote_ip_prefix: 10.255.255.0/24 }]
                     
     AppPort:
         type: OS::Neutron::Port
@@ -149,4 +157,47 @@ resources:
                 #!/bin/bash
                 apt-get update -y
                 apt-get install apache2 -y
-            user_data_format: RAW   
+            user_data_format: RAW
+         
+    #cvièenie 5     
+         
+    ProxyFloatingIpAssociation:
+        type: OS::Neutron::FloatingIPAssociation
+        properties:
+            floatingip_id: { get_param: ProxyFloatingIpID }
+            port_id: { get_resource: ProxyPort }     
+         
+    ProxySecurityGroup:
+        type: OS::Neutron::SecurityGroup
+        properties:
+            name: { list_join: [ '-', [ { get_param: 'Cvicenie' }, 'proxy-security-group' ] ] }
+            rules: [{ direction: ingress, ethertype: IPv4, protocol: tcp, port_range_min: 22, port_range_max: 22, remote_ip_prefix: 10.255.255.0/24 },
+                    { direction: ingress, ethertype: IPv4, protocol: icmp, remote_ip_prefix: 10.255.255.0/24 }, 
+                    { direction: ingress, ethertype: IPv4, protocol: tcp, port_range_min: 80, port_range_max: 80, remote_ip_prefix: 0.0.0.0/0 }, 
+                    { direction: ingress, ethertype: IPv4, protocol: tcp, port_range_min: 443, port_range_max: 443, remote_ip_prefix: 0.0.0.0/0 },
+                    { direction: ingress, ethertype: IPv4, protocol: tcp, port_range_min: 3128, port_range_max: 3128, remote_ip_prefix: 10.255.255.0/24 }]              
+            
+    ProxyPort:
+        type: OS::Neutron::Port
+        properties:
+            name: { list_join: [ '-', [ { get_param: 'Cvicenie' }, 'proxy-port' ] ] }
+            fixed_ips:
+                - subnet: { get_resource: Subnet }
+            security_groups:
+                - { get_resource: ProxySecurityGroup }
+            network: { get_resource: Net }
+        
+    Proxy:
+        type: OS::Nova::Server
+        properties:
+            name: { list_join: [ '-', [ { get_param: 'Cvicenie' }, 'proxy' ] ] }
+            availability_zone: { get_param: 'AvailabilityZone' }
+            flavor: { get_param: 'Flavor' }
+            image: { get_param: 'Image' }
+            networks:
+                - port: { get_resource: ProxyPort }
+            user_data: |
+                #!/bin/bash
+                apt-get update -y
+                apt-get install apache2 -y
+            user_data_format: RAW
